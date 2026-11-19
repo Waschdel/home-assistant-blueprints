@@ -1,0 +1,89 @@
+blueprint:
+  name: Thermostat Control
+  description: Control Thermostat based on window/door and boost
+  domain: automation
+  input:
+    climate_entities:
+      name: Climate Entities
+      description: Thermostat to change depending on window/door
+      selector:
+        entity:
+          multiple: true
+          filter:
+            domain: climate
+    window_entities:
+      name: Window/Door Entities
+      description: Window/Door to react to
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - domain: binary_sensor
+              device_class: window
+            - domain: binary_sensor
+              device_class: door
+    boost_timer_entity:
+      name: Boost Timer Entity
+      selector:
+        entity:
+          multiple: false
+          filter:
+            domain: timer
+    window_open_temperature_entity:
+      name: Entity holding the window open temperature
+      selector:
+        entity:
+          multiple: false
+          filter:
+            - domain: number
+            - domain: input_number
+    window_closed_temperature_entity:
+      name: Entity holding the window closed temperature
+      selector:
+        entity:
+          multiple: false
+          filter:
+            - domain: number
+            - domain: input_number
+
+triggers:
+  - trigger: state
+    entity_id: !input window_entities
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 3
+  - trigger: state
+    entity_id:
+      - !input window_open_temperature_entity
+      - !input window_closed_temperature_entity
+      - !input boost_timer_entity
+
+actions:
+  - variables:
+      open_temp_id: !input window_open_temperature_entity
+      closed_temp_id: !input window_closed_temperature_entity
+      boost_id: !input boost_timer_entity
+      climate_entity: !input climate_entities[0]
+      window_list: !input window_entities
+      any_window_open: >
+        {% set ns = namespace(open=false) %}
+        {% for win in window_list %}
+          {% if states(win) == 'on' %}
+            {% set ns.open = true %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.open }}
+  - action: climate.set_temperature
+    target:
+      entity_id: !input climate_entities
+    metadata: {}
+    data_template:
+      temperature: >
+        {% if any_window_open %}
+          {{ states(open_temp_id) }}
+        {% elif states(boost_id) == "active" }
+          {{ state_attr(climate_entity, "max_temp") }}
+        {% else %}
+          {{ states(closed_temp_id) }}
+        {% endif %}
