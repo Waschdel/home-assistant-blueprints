@@ -64,7 +64,7 @@ actions:
       open_temp_id: !input window_open_temperature_entity
       closed_temp_id: !input window_closed_temperature_entity
       boost_id: !input boost_timer_entity
-      climate_entity: !input climate_entities[0]
+      climate_entities: !input climate_entities
       window_list: !input window_entities
       any_window_open: >
         {% set ns = namespace(open=false) %}
@@ -82,8 +82,8 @@ actions:
       temperature: >
         {% if any_window_open %}
           {{ states(open_temp_id) }}
-        {% elif states(boost_id) == "active" }
-          {{ state_attr(climate_entity, "max_temp") }}
+        {% elif states(boost_id) == "active" %}
+          {{ state_attr(climate_entities[0], "max_temp") }}
         {% else %}
           {{ states(closed_temp_id) }}
         {% endif %}
