@@ -45,6 +45,16 @@ blueprint:
           filter:
             - domain: number
             - domain: input_number
+    boost_temperature:
+      name: Boost Temperature
+      selector:
+        number:
+          min: 7.5
+          max: 28.5
+          step: 0.5
+          unit_of_measurement: "°C"
+          mode: slider
+          default: 28
 
 triggers:
   - trigger: state
@@ -82,7 +92,7 @@ actions:
         {% if any_window_open %}
           {{ states(open_temp_id) }}
         {% elif states(boost_id) == "active" %}
-          28
+          !input boost_temperature
         {% else %}
           {{ states(closed_temp_id) }}
         {% endif %}
